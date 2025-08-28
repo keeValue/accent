@@ -45,19 +45,28 @@ defmodule Accent.MachineTranslations.Provider.Deepl do
 
     def translate(provider, contents, source_arg, target_arg) do
       with {:ok, {source, target}} <-
-             Accent.MachineTranslations.map_source_and_target(source_arg, target_arg, @supported_languages),
-           params = %{text: contents, source_lang: source && String.upcase(source), target_lang: String.upcase(target)},
-           {:ok, %{body: %{"translations" => translations}}} <-
-             Tesla.post(client(provider.config["key"]), "translate", params) do
+            Accent.MachineTranslations.map_source_and_target(source_arg, target_arg, @supported_languages),
+          params <-
+            %{
+              text: contents,
+              source_lang: source && String.upcase(source),
+              target_lang: String.upcase(target)
+            }
+            |> maybe_put_glossary(provider.config),
+          {:ok, %{body: %{"translations" => translations}}} <-
+            Tesla.post(client(provider.config["key"]), "translate", params) do
         {:ok, Enum.map(translations, &%TranslatedText{text: &1["text"]})}
       else
-        {:ok, %{status: status, body: body}} when status > 201 ->
-          {:error, body}
-
-        error ->
-          error
+        {:ok, %{status: status, body: body}} when status > 201 -> {:error, body}
+        error -> error
       end
     end
+
+    defp maybe_put_glossary(params, %{"glossary_id" => id}) when is_binary(id) and id != "" do
+      Map.put(params, :glossary_id, id)
+    end
+
+    defp maybe_put_glossary(params, _), do: params
 
     defmodule Auth do
       @moduledoc false
