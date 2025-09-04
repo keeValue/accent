@@ -8,9 +8,9 @@ WORKDIR /opt/build
 # Install only required dependencies
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
-        build-essential \
-        git \
-        python3 && \
+    build-essential \
+    git \
+    python3 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -35,9 +35,9 @@ WORKDIR /opt/build
 # Install only required dependencies
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
-        build-essential \
-        git \
-        python3 && \
+    build-essential \
+    git \
+    python3 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -55,24 +55,25 @@ RUN npm run build-production
 ################################################################################
 # Stage 3: Build language tool jar in parallel
 ################################################################################
-FROM debian:bullseye-slim AS languagetool-builder
+FROM debian:bullseye AS languagetool-builder
 
 WORKDIR /build
 
 # Install only Java runtime
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
-        default-jre && \
+    default-jre && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy language tool source and build
-COPY vendor/language_tool/priv/ vendor/language_tool/priv/
-RUN cd ./vendor/language_tool/priv/native/languagetool && ./gradlew shadowJar
+COPY vendor/language_tool/priv/native/languagetool/ ./languagetool/
+
+RUN cd languagetool && ./gradlew shadowJar
 
 # Prepare output directory for next stage
 RUN mkdir -p /build/priv/native/ && \
-    cp ./vendor/language_tool/priv/native/languagetool/app/build/libs/language-tool.jar /build/priv/native/
+    cp ./languagetool/app/build/libs/language-tool.jar /build/priv/native/
 
 
 ################################################################################
@@ -86,9 +87,9 @@ WORKDIR /build
 # Install only needed build dependencies
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
-        build-essential \
-        git \
-        libyaml-dev && \
+    build-essential \
+    git \
+    libyaml-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -138,18 +139,18 @@ LABEL org.opencontainers.image.licenses=BSD-3-Clause
 # Install only runtime dependencies
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
-        default-jre-headless \
-        libyaml-0-2 \
-        openssl \
-        ca-certificates \
-        libncurses5 \
-        locales \
-        fontconfig \
-        hunspell \
-        hunspell-fr \
-        hunspell-en-ca \
-        hunspell-en-us \
-        hunspell-es && \
+    default-jre-headless \
+    libyaml-0-2 \
+    openssl \
+    ca-certificates \
+    libncurses5 \
+    locales \
+    fontconfig \
+    hunspell \
+    hunspell-fr \
+    hunspell-en-ca \
+    hunspell-en-us \
+    hunspell-es && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
