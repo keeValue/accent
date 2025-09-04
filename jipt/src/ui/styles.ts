@@ -3,6 +3,10 @@
 const set = (element: Element, style: string) =>
   element.setAttribute('style', style);
 const hide = (element: Element) => set(element, 'display: none;');
+const remove = (element: Element, style: string) => {
+  const s = element.getAttribute(style);
+  s.replace(/style/g, '');
+};
 
 // Pin
 const pin = 'position: fixed; z-index: 10000; min-width: 150px;';
@@ -52,5 +56,5 @@ export default {
   set,
   translationNode,
   translationNodeConflicted,
-  translationNodeUpdated
+  translationNodeUpdated,
 };

@@ -34,7 +34,7 @@ export default class LiveNode {
       attribute.value = newAttribute;
 
       this.state.addReference(node, translation, {
-        attributeName: attribute.name
+        attributeName: attribute.name,
       });
     });
   }
@@ -45,7 +45,7 @@ export default class LiveNode {
     if (!translation || !translation.text) return;
   }
 
-  matchText(node: Element) {
+  matchText(node: Element | ChildNode) {
     const translation = this.findTranslationByValue(node.nodeValue);
 
     if (!translation || translation.text === undefined) return;
@@ -62,7 +62,7 @@ export default class LiveNode {
 
     parentNode.innerHTML = this.replaceValue(parentNode.innerHTML, newContent);
     const newNode = parentNode.getElementsByClassName(
-      ACCENT_CLASS
+      ACCENT_CLASS,
     )[0] as HTMLElement;
     Mutation.nodeStyleRefresh(newNode, translation);
 

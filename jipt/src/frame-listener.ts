@@ -10,7 +10,7 @@ const enum ACTIONS {
   redirectIfEmbedded = 'redirectIfEmbedded',
   login = 'login',
   loggedIn = 'loggedIn',
-  changeText = 'changeText'
+  changeText = 'changeText',
 }
 
 interface Props {
@@ -18,6 +18,7 @@ interface Props {
   liveNode: LiveNode;
   config: Config;
   state: State;
+  root: HTMLElement;
 }
 
 /*
@@ -31,19 +32,21 @@ export default class FrameListener {
   private readonly state: State;
   private readonly ui: UI;
   private readonly projectId: string;
+  private readonly root: HTMLElement;
 
   constructor(props: Props) {
     this.ui = props.ui;
     this.state = props.state;
     this.liveNode = props.liveNode;
     this.projectId = props.config.i;
+    this.root = props.root;
   }
 
   bindEvents() {
     window.addEventListener(
       'message',
       this.handleAccentMessage.bind(this),
-      false
+      false,
     );
   }
 
@@ -86,7 +89,7 @@ export default class FrameListener {
       window.location.reload();
     } else {
       this.ui.hideOverlay();
-      this.liveNode.evaluate(document.body);
+      this.liveNode.evaluate(this.root);
     }
   }
 
