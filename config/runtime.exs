@@ -104,8 +104,8 @@ config :accent, Accent.MachineTranslations,
   default_providers_config: %{
     "google_translate" => %{"key" => get_env("GOOGLE_TRANSLATIONS_SERVICE_ACCOUNT_KEY")},
     "deepl" => %{
-      "key" => get_env("DEEPL_TRANSLATIONS_KEY")
-      "glossary_id" => get_env("DEEPL_GLOSSARY_ID")
+      "key" => get_env("DEEPL_TRANSLATIONS_KEY"),
+      "glossary_map" => get_env("DEEPL_GLOSSARY_MAP")
     }
   }
 

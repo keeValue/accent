@@ -55,7 +55,7 @@ RUN npm run build-production
 ################################################################################
 # Stage 3: Build language tool jar in parallel
 ################################################################################
-FROM debian:bullseye AS languagetool-builder
+FROM debian:bullseye-slim AS languagetool-builder
 
 WORKDIR /build
 
