@@ -1,17 +1,9 @@
-// Command
-import { configFlag } from '../base';
-
-// Formatters
-import ExportFormatter from '../services/formatters/project-export';
-
-// Services
-import DocumentJiptPathsFetcher from '../services/document-jipt-paths-fetcher';
-import DocumentExportFormatter from '../services/formatters/document-export';
-import HookRunner from '../services/hook-runner';
-
-// Types
 import { Args } from '@oclif/core';
 import BaseCommand from '../base';
+import DocumentJiptPathsFetcher from '../services/document-jipt-paths-fetcher';
+import DocumentExportFormatter from '../services/formatters/document-export';
+import ExportFormatter from '../services/formatters/project-export';
+import HookRunner from '../services/hook-runner';
 import { Hooks } from '../types/document-config';
 
 export default class Jipt extends BaseCommand {
@@ -27,7 +19,7 @@ export default class Jipt extends BaseCommand {
     })
   } as const;
 
-  static flags = { config: configFlag } as const;
+  static flags = { ...BaseCommand.flags } as const;
 
   async run() {
     const { args } = await this.parse(Jipt);

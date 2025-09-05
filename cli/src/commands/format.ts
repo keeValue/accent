@@ -1,6 +1,6 @@
 import { Flags } from '@oclif/core';
 import * as fs from 'fs';
-import BaseCommand, { configFlag } from '../base';
+import BaseCommand from '../base';
 import DocumentPathsFetcher from '../services/document-paths-fetcher';
 import DocumentFormatter from '../services/formatters/document-format';
 
@@ -18,12 +18,12 @@ export default class Format extends BaseCommand {
   static args = {} as const;
 
   static flags = {
+    ...BaseCommand.flags,
     'order-by': Flags.string({
       default: 'index',
       description: 'Order of the keys',
       options: ['index', 'key', '-index', '-key']
-    }),
-    config: configFlag
+    })
   } as const;
 
   async run() {

@@ -77,6 +77,10 @@ Only your master language should be listed in your files config.`
     );
   }
 
+  mergeHeaders(headers: Record<string, string>): void {
+    this.config.extraHeaders = { ...this.config.extraHeaders, ...headers };
+  }
+
   private sourceFolderPath(source: string) {
     return source.replace(path.basename(source), '');
   }

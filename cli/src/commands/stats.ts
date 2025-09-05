@@ -1,11 +1,5 @@
-// Vendor
-import * as chalk from 'chalk';
-
-// Command
-import { configFlag } from '../base';
-
-// Services
 import { Errors, Flags } from '@oclif/core';
+import * as chalk from 'chalk';
 import BaseCommand from '../base';
 import DocumentPathsFetcher from '../services/document-paths-fetcher';
 import Formatter from '../services/formatters/project-stats';
@@ -20,6 +14,7 @@ export default class Stats extends BaseCommand {
   static args = {} as const;
 
   static flags = {
+    ...BaseCommand.flags,
     version: Flags.string({
       default: undefined,
       description: 'View stats for a specific version'
@@ -30,7 +25,6 @@ export default class Stats extends BaseCommand {
     'check-translated': Flags.boolean({
       description: 'Exit 1 when translated percentage is not 100%'
     }),
-    config: configFlag
   } as const;
 
   async run() {

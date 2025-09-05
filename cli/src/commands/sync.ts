@@ -1,5 +1,4 @@
 import { existsSync } from 'fs';
-import { configFlag } from '../base';
 
 import AddTranslationsFormatter from '../services/formatters/project-add-translations';
 import ExportFormatter from '../services/formatters/project-export';
@@ -30,6 +29,7 @@ export default class Sync extends BaseCommand {
   static args = {} as const;
 
   static flags = {
+    ...BaseCommand.flags,
     'add-translations': Flags.boolean({
       description:
         'Add translations in Accent to help translators if you already have translated strings locally'
@@ -64,8 +64,7 @@ export default class Sync extends BaseCommand {
       default: '',
       description:
         'Sync a specific version, the tag needs to exists in Accent first'
-    }),
-    config: configFlag
+    })
   };
 
   async run() {
