@@ -1,5 +1,5 @@
 {
-  "name": "accent-cli",
+  "name": "@keevalue/accent-cli",
   "version": "1.0.1",
   "author": "Simon Prévost",
   "description": "Accent CLI",
@@ -52,9 +52,12 @@
       "@oclif/plugin-warn-if-update-available"
     ]
   },
+  "publishConfig": {
+    "registry": "https://europe-west6-npm.pkg.dev/prj-core-bootstrap/ar-npm-global/"
+  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mirego/accent.git"
+    "url": "https://github.com/keeValue/accent.git"
   },
   "scripts": {
     "build": "rimraf -rf lib && tsc",

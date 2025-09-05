@@ -23,11 +23,11 @@ Accent CLI
 # Usage
 <!-- usage -->
 ```sh-session
-$ npm install -g accent-cli
+$ npm install -g @keevalue/accent-cli
 $ accent COMMAND
 running command...
 $ accent (--version)
-accent-cli/1.0.1 win32-x64 node-v22.18.0
+@keevalue/accent-cli/1.0.1 win32-x64 node-v22.18.0
 $ accent --help [COMMAND]
 USAGE
   $ accent COMMAND
@@ -234,7 +234,7 @@ EXAMPLES
   $ accent export --order-by=key --version=build.myapp.com:0.12.345
 ```
 
-_See code: [src/commands/export.ts](https://github.com/mirego/accent/blob/v1.0.1/src/commands/export.ts)_
+_See code: [src/commands/export.ts](https://github.com/keeValue/accent/blob/v1.0.1/src/commands/export.ts)_
 
 ## `accent format`
 
@@ -258,7 +258,7 @@ EXAMPLES
   $ accent format
 ```
 
-_See code: [src/commands/format.ts](https://github.com/mirego/accent/blob/v1.0.1/src/commands/format.ts)_
+_See code: [src/commands/format.ts](https://github.com/keeValue/accent/blob/v1.0.1/src/commands/format.ts)_
 
 ## `accent help [COMMAND]`
 
@@ -303,7 +303,7 @@ EXAMPLES
   $ accent jipt
 ```
 
-_See code: [src/commands/jipt.ts](https://github.com/mirego/accent/blob/v1.0.1/src/commands/jipt.ts)_
+_See code: [src/commands/jipt.ts](https://github.com/keeValue/accent/blob/v1.0.1/src/commands/jipt.ts)_
 
 ## `accent lint`
 
@@ -325,7 +325,7 @@ EXAMPLES
   $ accent lint
 ```
 
-_See code: [src/commands/lint.ts](https://github.com/mirego/accent/blob/v1.0.1/src/commands/lint.ts)_
+_See code: [src/commands/lint.ts](https://github.com/keeValue/accent/blob/v1.0.1/src/commands/lint.ts)_
 
 ## `accent stats`
 
@@ -333,7 +333,8 @@ Fetch stats from the API and display them beautifully
 
 ```
 USAGE
-  $ accent stats [-c <value>] [-H <value>... | --extra-headers-json <value>] [--version <value>] [--check-reviewed] [--check-translated]
+  $ accent stats [-c <value>] [-H <value>... | --extra-headers-json <value>] [--version <value>] [--check-reviewed]
+    [--check-translated]
 
 FLAGS
   -H, --extra-header=<value>...     Extra HTTP header(s) to inject (key=value). Can be repeated.
@@ -350,7 +351,7 @@ EXAMPLES
   $ accent stats
 ```
 
-_See code: [src/commands/stats.ts](https://github.com/mirego/accent/blob/v1.0.1/src/commands/stats.ts)_
+_See code: [src/commands/stats.ts](https://github.com/keeValue/accent/blob/v1.0.1/src/commands/stats.ts)_
 
 ## `accent sync`
 
@@ -358,8 +359,8 @@ Sync files in Accent and write them to your local filesystem
 
 ```
 USAGE
-  $ accent sync [-c <value>] [-H <value>... | --extra-headers-json <value>] [--add-translations] [--no-local-write] [--dry-run] [--merge-type smart|passive|force] [--order-by
-    index|key] [--sync-type smart|passive] [--version <value>]
+  $ accent sync [-c <value>] [-H <value>... | --extra-headers-json <value>] [--add-translations] [--no-local-write]
+    [--dry-run] [--merge-type smart|passive|force] [--order-by index|key] [--sync-type smart|passive] [--version <value>]
 
 FLAGS
   -H, --extra-header=<value>...     Extra HTTP header(s) to inject (key=value). Can be repeated.
@@ -369,8 +370,8 @@ FLAGS
       --extra-headers-json=<value>  JSON object of headers to inject (e.g. '{"X-Header":"v"}')
       --merge-type=<option>         [default: passive] Algorithm to use on existing strings when adding translation
                                     <options: smart|passive|force>
-      --no-local-write              Do not write to the local files _after_ the sync. Warning: This option could lead to a mismatch between the source of truth (your code repository) and
-                                    Accent
+      --no-local-write              Do not write to the local files _after_ the sync. Warning: This option could lead to a mismatch
+                                    between the source of truth (your code repository) and Accent
       --order-by=<option>           [default: index] Will be used in the export call as the order of the keys
                                     <options: index|key>
       --sync-type=<option>          [default: smart] Algorithm to use on existing strings when syncing the main language
@@ -388,7 +389,7 @@ EXAMPLES
   $ accent sync --add-translations --merge-type=smart --order-key=key --version=v0.23
 ```
 
-_See code: [src/commands/sync.ts](https://github.com/mirego/accent/blob/v1.0.1/src/commands/sync.ts)_
+_See code: [src/commands/sync.ts](https://github.com/keeValue/accent/blob/v1.0.1/src/commands/sync.ts)_
 
 ## `accent version`
 
