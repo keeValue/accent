@@ -1,19 +1,24 @@
-import { Errors } from '@oclif/core';
+import {Errors} from '@oclif/core';
 import * as chalk from 'chalk';
 import * as fs from 'fs-extra';
 import * as path from 'path';
-import { Config } from '../types/config';
-import { DocumentConfig, NamePattern } from '../types/document-config';
-import { OperationResponse } from '../types/operation-response';
-import { Project } from '../types/project';
-import { fetchFromRevision } from './revision-slug-fetcher';
+import {Config} from '../types/config';
+import {DocumentConfig, NamePattern} from '../types/document-config';
+import {OperationResponse} from '../types/operation-response';
+import {Project} from '../types/project';
+import {fetchFromRevision} from './revision-slug-fetcher';
 import Tree from './tree';
 
 const SERVER_INTERNAL_ERROR_THRESHOLD_STATUS_CODE = 400;
 
 const throwOnServerError = async (response: Response) => {
   if (response.status >= SERVER_INTERNAL_ERROR_THRESHOLD_STATUS_CODE) {
-    throw new Errors.CLIError(chalk.red(`${await response.text()}`), { exit: 1 });
+    throw new Errors.CLIError(
+      chalk.red(
+        `${response.status} ${response.statusText}: ${await response.text()}\nResponse URL: ${response.url}`,
+      ),
+      {exit: 1},
+    );
   }
 };
 
@@ -44,15 +49,26 @@ export default class Document {
     this.paths = new Tree(this.config).list();
   }
 
-  private async createFileFromStream(filePath: string): Promise<File> {
-    const bytes = await fs.readFile(filePath);
-    return new File([bytes], path.basename(filePath), { type: 'application/octet-stream' });
+  private async createFileFromStream(filePath: string): Promise<File | Blob> {
+    const bytes = fs.readFileSync(filePath);
+    try {
+      return new File([bytes as BlobPart], path.basename(filePath), {
+        type: 'application/octet-stream',
+      });
+    } catch {
+      console.warn('Could not send as file; Creating blob instead...');
+      return new Blob([bytes as BlobPart]);
+    }
   }
 
   async format(file: string, language: string, options: FormatOptions) {
     const formData = new FormData();
 
-    formData.append('file', await this.createFileFromStream(file));
+    formData.append(
+      'file',
+      await this.createFileFromStream(file),
+      path.basename(file),
+    );
     formData.append('document_path', this.parseDocumentName(file, this.config));
     formData.append('document_format', this.config.format);
     formData.append('language', language);
@@ -64,7 +80,7 @@ export default class Document {
     const response = await fetch(url, {
       body: formData,
       headers: this.authorizationHeader(),
-      method: 'POST'
+      method: 'POST',
     });
 
     await throwOnServerError(response);
@@ -75,7 +91,11 @@ export default class Document {
   async lint(file: string, language: string) {
     const formData = new FormData();
 
-    formData.append('file', await this.createFileFromStream(file));
+    formData.append(
+      'file',
+      await this.createFileFromStream(file),
+      path.basename(file),
+    );
     formData.append('document_path', this.parseDocumentName(file, this.config));
     formData.append('document_format', this.config.format);
     formData.append('language', language);
@@ -86,7 +106,7 @@ export default class Document {
     const response = await fetch(url, {
       body: formData,
       headers: this.authorizationHeader(),
-      method: 'POST'
+      method: 'POST',
     });
 
     await throwOnServerError(response);
@@ -97,7 +117,11 @@ export default class Document {
   async sync(project: Project, file: string, options: any) {
     const masterLanguage = fetchFromRevision(project.masterRevision);
     const formData = new FormData();
-    formData.append('file', await this.createFileFromStream(file));
+    formData.append(
+      'file',
+      await this.createFileFromStream(file),
+      path.basename(file),
+    );
     formData.append('document_path', this.parseDocumentName(file, this.config));
     formData.append('document_format', this.config.format);
     formData.append('language', masterLanguage);
@@ -113,23 +137,27 @@ export default class Document {
     const response = await fetch(url, {
       body: formData,
       headers: this.authorizationHeader(),
-      method: 'POST'
+      method: 'POST',
     });
 
     await throwOnServerError(response);
 
-    return this.handleResponse(response, options, { file });
+    return this.handleResponse(response, options, {file});
   }
 
   async addTranslations(
     file: string,
     language: string,
     documentPath: string,
-    options: any
+    options: any,
   ) {
     const formData = new FormData();
 
-    formData.append('file', await this.createFileFromStream(file));
+    formData.append(
+      'file',
+      await this.createFileFromStream(file),
+      path.basename(file),
+    );
     formData.append('document_path', documentPath);
     formData.append('document_format', this.config.format);
     formData.append('language', language);
@@ -145,12 +173,12 @@ export default class Document {
     const response = await fetch(url, {
       body: formData,
       headers: this.authorizationHeader(),
-      method: 'POST'
+      method: 'POST',
     });
 
     await throwOnServerError(response);
 
-    return this.handleResponse(response, options, { file, documentPath });
+    return this.handleResponse(response, options, {file, documentPath});
   }
 
   fetchLocalFile(documentPath: string, localPath: string) {
@@ -167,13 +195,13 @@ export default class Document {
     file: string,
     language: string,
     documentPath: string,
-    options: any
+    options: any,
   ) {
     const query = [
       ['document_path', documentPath],
       ['document_format', this.config.format],
       ['order_by', options['order-by']],
-      ['language', language]
+      ['language', language],
     ];
 
     if (options.version) query.push(['version', options.version]);
@@ -181,8 +209,9 @@ export default class Document {
 
     const url = `${this.apiUrl}/export?${this.encodeQuery(query)}`;
     const response = await fetch(url, {
-      headers: this.authorizationHeader()
+      headers: this.authorizationHeader(),
     });
+
     await throwOnServerError(response);
 
     return this.writeResponseToFile(response, file);
@@ -191,7 +220,7 @@ export default class Document {
   async exportJipt(file: string, documentPath: string) {
     const query = [
       ['document_path', documentPath],
-      ['document_format', this.config.format]
+      ['document_format', this.config.format],
     ];
 
     if (this.projectId) query.push(['project_id', this.projectId]);
@@ -199,8 +228,9 @@ export default class Document {
     const url = `${this.apiUrl}/jipt-export?${this.encodeQuery(query)}`;
 
     const response = await fetch(url, {
-      headers: this.authorizationHeader()
+      headers: this.authorizationHeader(),
     });
+
     await throwOnServerError(response);
 
     return this.writeResponseToFile(response, file);
@@ -224,7 +254,7 @@ export default class Document {
       const pathParts = file.split(path.sep);
       const resultPath = pathParts.splice(
         languageIndex,
-        pathParts.length - languageIndex - 1
+        pathParts.length - languageIndex - 1,
       );
       return resultPath.length > 0
         ? resultPath.join(path.sep).concat(path.sep).concat(basename)
@@ -245,7 +275,7 @@ export default class Document {
   }
 
   private authorizationHeader() {
-    return { authorization: `Bearer ${this.apiKey}`, ...this.extraHeaders };
+    return {authorization: `Bearer ${this.apiKey}`, ...this.extraHeaders};
   }
 
   private resolveNamePattern(config: DocumentConfig) {
@@ -268,22 +298,22 @@ export default class Document {
   private async writeResponseToFile(response: Response, file: string) {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-    await fs.mkdir(path.dirname(file), { recursive: true });
+    await fs.mkdir(path.dirname(file), {recursive: true});
     const ab = await response.arrayBuffer();
-    await fs.writeFile(file, Buffer.from(ab));
+    fs.writeFileSync(file, Buffer.from(ab));
   }
 
   private async handleResponse(
     response: Response,
     options: any,
-    info: object
+    info: object,
   ): Promise<OperationResponse> {
     if (!options['dry-run']) {
-      return { peek: false, ...info };
+      return {peek: false, ...info};
     } else {
-      const { data } = (await response.json()) as { data: any };
+      const {data} = (await response.json()) as {data: any};
 
-      return { peek: data, ...info };
+      return {peek: data, ...info};
     }
   }
 }
