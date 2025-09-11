@@ -35,3 +35,5 @@ jipt/webapp-dist
 cli
 
 priv/native/language-tool.jar
+
+!vendor/language_tool/**

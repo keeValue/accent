@@ -14,7 +14,7 @@ export interface Config {
 const state = new State({
   nodes: new WeakMap(),
   projectTranslations: new Map(),
-  refs: new Map()
+  refs: new Map(),
 });
 
 const liveNode = new LiveNode(state);
@@ -31,7 +31,13 @@ export const Accent = {
     const ui = new UI({root, config, state});
     ui.bindEvents();
 
-    const frameListener = new FrameListener({ui, liveNode, config, state});
+    const frameListener = new FrameListener({
+      ui,
+      liveNode,
+      config,
+      state,
+      root,
+    });
     frameListener.bindEvents();
 
     const pin = new Pin({root, liveNode, state, ui});
@@ -39,7 +45,7 @@ export const Accent = {
 
     const mutation = new Mutation(liveNode);
     mutation.bindEvents();
-  }
+  },
 };
 
 export default Accent;
