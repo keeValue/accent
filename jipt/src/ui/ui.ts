@@ -1,17 +1,15 @@
-import {Config} from '../accent';
-import State from '../state';
+import {State} from '../state';
 import randomClass from './random-class';
 import styles from './styles';
+import {
+  PostMessagePayloads,
+  SelectMultipleTranslationsPayload,
+  SelectSingleTranslationPayload,
+} from '../interfaces/accent-api';
 
 const EXPAND_CLASS = randomClass();
 const COLLAPSE_CLASS = randomClass();
 const DISABLE_CLASS = randomClass();
-
-interface Props {
-  root: Element;
-  config: Config;
-  state: State;
-}
 
 /*
   The UI component is responsible of instanciating the Accent interface
@@ -21,38 +19,35 @@ interface Props {
   All interactions from the parent window TO the Accent client go through here.
 */
 export default class UI {
+  private readonly state: State = State.getInstance();
   private readonly overlay: HTMLElement;
   private readonly editor: HTMLElement;
   private readonly frame: HTMLIFrameElement;
-  private readonly state: State;
   private readonly expandButton: Element;
   private readonly collapseButton: Element;
   private readonly disableButton: Element;
 
-  constructor(props: Props) {
-    this.state = props.state;
-
-    this.overlay = this.buildOverlay(props.config);
+  constructor(root: Element) {
+    this.overlay = this.buildOverlay();
     this.editor = this.buildContainer();
-    this.frame = this.buildFrame(props.config);
+    this.frame = this.buildFrame();
 
     this.editor.append(this.frame);
-    props.root.append(this.editor);
-    props.root.append(this.overlay);
+    root.append(this.editor);
+    root.append(this.overlay);
 
     this.expandButton = this.editor.getElementsByClassName(EXPAND_CLASS)[0];
     this.collapseButton = this.editor.getElementsByClassName(COLLAPSE_CLASS)[0];
     this.disableButton = this.editor.getElementsByClassName(DISABLE_CLASS)[0];
 
     this.collapse();
-    if (localStorage.getItem('accent-disabled')) this.hideOverlay();
   }
 
   bindEvents() {
     this.editor.addEventListener(
       'click',
       this.handleEditorToggle.bind(this),
-      false
+      false,
     );
   }
 
@@ -62,22 +57,13 @@ export default class UI {
   }
 
   showLogin() {
-    if (localStorage.getItem('accent-disabled')) return;
-
     styles.hide(this.expandButton);
     styles.set(this.editor, styles.frameCentered);
     styles.set(this.disableButton, styles.frameDisableButton);
   }
 
-  postMessage(message: object) {
-    this.frame.contentWindow.postMessage({jipt: true, ...message}, '*');
-  }
-
-  disable() {
-    this.hideOverlay();
-    this.collapse();
-    styles.hide(this.disableButton);
-    localStorage.setItem('accent-disabled', '1');
+  postMessage(message: PostMessagePayloads) {
+    this.frame.contentWindow!.postMessage(message, this.state.config.origin);
   }
 
   collapse() {
@@ -90,7 +76,6 @@ export default class UI {
     styles.set(this.editor, styles.frameExpanded);
     styles.hide(this.expandButton);
     styles.set(this.collapseButton, styles.frameCollapseButton);
-    localStorage.removeItem('accent-disabled');
   }
 
   handleEditorToggle(event: MouseEvent) {
@@ -103,40 +88,48 @@ export default class UI {
     if (target === this.expandButton) {
       return this.expand();
     }
-
-    if (target === this.disableButton) {
-      return this.disable();
-    }
   }
 
   selectTranslation(id: string) {
     this.expand();
-    this.postMessage({selectId: id});
+    const payload: SelectSingleTranslationPayload = {
+      jipt: true,
+      selectId: id,
+    };
+    this.postMessage(payload);
   }
 
   selectTranslations(ids: string) {
     this.expand();
-    this.postMessage({selectIds: ids});
+    const payload: SelectMultipleTranslationsPayload = {
+      jipt: true,
+      selectIds: ids,
+    };
+    this.postMessage(payload);
   }
 
-  private buildOverlay(config: Config) {
+  private buildOverlay() {
     const element = document.createElement('div');
-    if (!config.o) styles.set(element, styles.overlay);
+    if (!this.state.config.hideLoading) styles.set(element, styles.overlay);
 
     return element;
   }
 
-  private buildFrame(config: Config) {
-    const element = document.createElement('iframe');
-    const query = this.state.getCurrentRevision()
-      ? `?revisionId=${this.state.getCurrentRevision()}`
-      : '';
+  private buildFrame() {
+    const frame = document.createElement('iframe');
+    const url = new URL(
+      `app/projects/${this.state.config.projectId}/jipt`,
+      this.state.config.origin,
+    );
+    url.searchParams.set('parent', window.location.origin);
 
-    element.src = `${config.h}/app/projects/${config.i}/jipt${query}`;
-    element.frameBorder = '0';
-    styles.set(element, styles.frameWindow);
+    const rev = this.state.currentRevision;
+    if (rev) url.searchParams.set('revisionId', rev);
 
-    return element;
+    frame.src = url.toString();
+    styles.set(frame, styles.frameWindow);
+
+    return frame;
   }
 
   private buildContainer() {

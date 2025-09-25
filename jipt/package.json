@@ -1,20 +1,19 @@
 {
   "name": "jipt",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "parcel index.html",
-    "build-production": "parcel build index.ts --out-dir=jipt-dist --target browser --experimental-scope-hoisting",
-    "build-production-inline": "parcel build index.ts --out-dir=../priv/static/jipt --target browser --experimental-scope-hoisting",
-    "watch-production-inline": "parcel watch index.ts --out-dir=../priv/static/jipt --target browser",
+    "build": "esbuild index.ts --bundle --sourcemap --outdir=dist --format=esm",
+    "build-production": "esbuild index.ts --bundle --minify --sourcemap --outdir=dist --format=esm",
+    "watch": "esbuild index.ts --bundle --outdir=dist --format=esm --watch",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "parcel-bundler": "1.12.4",
-    "typescript": "3.8.3"
+    "esbuild": "^0.25.10",
+    "typescript": "5.9.2"
   }
 }

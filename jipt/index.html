@@ -7,11 +7,14 @@
     <script>
       window.accent =
         window.accent ||
-        function() {
+        function () {
           (accent.q = accent.q || []).push(arguments);
         };
-      accent('init', {h: 'http://localhost:4009', i: '3f70caee-19a8-40f5-97b0-0860a822edd7'});
+      accent('init', {
+        h: 'http://localhost:4009',
+        i: '3f70caee-19a8-40f5-97b0-0860a822edd7',
+      });
     </script>
-    <script async src="./index.ts"></script>
+    <script type="module" async src="./dist/index.js"></script>
   </body>
 </html>

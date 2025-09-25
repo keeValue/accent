@@ -3,10 +3,6 @@
 const set = (element: Element, style: string) =>
   element.setAttribute('style', style);
 const hide = (element: Element) => set(element, 'display: none;');
-const remove = (element: Element, style: string) => {
-  const s = element.getAttribute(style);
-  s.replace(/style/g, '');
-};
 
 // Pin
 const pin = 'position: fixed; z-index: 10000; min-width: 150px;';
@@ -38,7 +34,7 @@ const frameDisableButton =
   'cursor: pointer; position: absolute; right: 4px; top: 2px; width: 24px; height: 24px; text-align: center; color: #555; font-size: 20px;';
 const overlay =
   'position: fixed; z-index: 10002; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.8)';
-const frameWindow = 'width: 600px; height: 600px';
+const frameWindow = 'width: 600px; height: 600px; border: none';
 
 export default {
   frameCentered,

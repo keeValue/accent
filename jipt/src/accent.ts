@@ -1,51 +1,45 @@
-import FrameListener from './frame-listener';
-import LiveNode from './mutation/live-node';
-import Mutation from './mutation/mutation';
-import State from './state';
+import {DefaultResolverConfig} from './config/default-resolver-config';
+import {DefaultScannerConfig} from './config/default-scanner-config';
+import {FrameListener} from './frame-listener';
+import {Config} from './interfaces/config';
+import {State} from './state';
 import Pin from './ui/pin';
+import {StyleInjector} from './ui/style-injector';
 import UI from './ui/ui';
 
-export interface Config {
-  i: string; // Project’s ID
-  h: string; // Accent API’s URL
-  o: boolean; // Hide black screen overlay on script loading, default: false
-}
+export class Accent {
+  private static _instance: Accent | null = null;
 
-const state = new State({
-  nodes: new WeakMap(),
-  projectTranslations: new Map(),
-  refs: new Map(),
-});
+  private constructor() {}
 
-const liveNode = new LiveNode(state);
+  static getInstance(): Accent {
+    if (!this._instance) this._instance = new this();
+    return this._instance;
+  }
 
-/*
-  Entrypoint of the application.
+  static exists() {
+    return !!this._instance;
+  }
 
-  Sets frame listener, mutation and UI.
-*/
-export const Accent = {
-  init: (config: Config) => {
+  static destroy() {
+    this._instance = null;
+  }
+
+  init(config: Config) {
+    const state = State.getInstance().init(config);
+    const {processedClass, conflictedClass, updatedClass} =
+      state.config.applierConfig;
+    StyleInjector.ensure(processedClass, conflictedClass, updatedClass);
+
     const root = document.body;
 
-    const ui = new UI({root, config, state});
+    const ui = new UI(root);
     ui.bindEvents();
 
-    const frameListener = new FrameListener({
-      ui,
-      liveNode,
-      config,
-      state,
-      root,
-    });
-    frameListener.bindEvents();
-
-    const pin = new Pin({root, liveNode, state, ui});
+    const pin = new Pin({ui, root});
     pin.bindEvents();
 
-    const mutation = new Mutation(liveNode);
-    mutation.bindEvents();
-  },
-};
-
-export default Accent;
+    const frameListener = new FrameListener(ui);
+    frameListener.bindEvents();
+  }
+}

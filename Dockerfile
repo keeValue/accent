@@ -28,7 +28,7 @@ RUN npm run build-production
 ################################################################################
 # Stage 2: Build jipt assets in parallel
 ################################################################################
-FROM node:21.6.1-bullseye-slim AS jipt-builder
+FROM node:22.19.0-bullseye-slim AS jipt-builder
 
 WORKDIR /opt/build
 
@@ -118,7 +118,7 @@ RUN mix compile --only prod
 
 # Copy static assets from previous build stages
 COPY --from=webapp-builder /opt/build/webapp-dist ./priv/static/webapp
-COPY --from=jipt-builder /opt/build/jipt-dist ./priv/static/jipt
+COPY --from=jipt-builder /opt/build/dist ./priv/static/jipt
 
 # Create the release
 RUN mix release && \

@@ -1,35 +1,34 @@
-import LiveNode from '../mutation/live-node';
-import State from '../state';
+import {ApplierConfig} from '../interfaces/config';
+import {LiveNode} from '../mutation/live-node';
+import {State} from '../state';
 import styles from './styles';
 import UI from './ui';
 
 interface Props {
   ui: UI;
-  liveNode: LiveNode;
   root: Element;
-  state: State;
 }
 
 const CENTER_OFFSET = 6;
+const PIN_ATTRIBUTE = 'data-ids';
 
 /*
   The Pin component serves as the entrypoint for the user. The element it creates
   is responsible to sending messages to the Accent UI.
 */
 export default class Pin {
-  private readonly element: Element;
-  private readonly liveNode: LiveNode;
-  private readonly state: State;
+  private readonly element: HTMLDivElement;
   private readonly ui: UI;
+  private readonly appliedAttribute =
+    State.getInstance().config.applierConfig.idAttribute;
+  private rafHandle = 0;
+  private lastHostElement: HTMLElement | null = null;
 
   constructor(props: Props) {
-    this.state = props.state;
-    this.liveNode = props.liveNode;
     this.ui = props.ui;
 
     const pin = document.createElement('div');
     styles.hide(pin);
-
     props.root.append(pin);
 
     this.element = pin;
@@ -37,45 +36,86 @@ export default class Pin {
 
   bindEvents() {
     this.element.addEventListener('click', (event) => {
-      const target = event.target as HTMLElement;
+      const element = (event.target as HTMLElement).closest(
+        `[${PIN_ATTRIBUTE}]`,
+      ) as HTMLElement | null;
+      if (!element) return;
 
-      if (target.dataset.id) {
-        this.ui.selectTranslation(target.dataset.id);
-        styles.hide(this.element);
-      }
-      if (target.dataset.ids) {
-        this.ui.selectTranslations(target.dataset.ids);
-        styles.hide(this.element);
-      }
+      const raw = element.getAttribute(PIN_ATTRIBUTE);
+      if (!raw) return;
+
+      if (raw.includes(',')) this.ui.selectTranslations(raw);
+      else this.ui.selectTranslation(raw);
+
+      styles.hide(this.element);
     });
 
-    document.addEventListener('mouseover', (event) => {
-      const node = event.target as HTMLElement;
+    document.addEventListener('pointerover', (event) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
 
-      if (this.liveNode.isLive(node)) this.showFor(node);
+      if (this.element.contains(target)) return;
+
+      const host = target.closest<HTMLElement>(`[${this.appliedAttribute}]`);
+      if (!host) return;
+
+      if (this.lastHostElement === host) return;
+
+      const ids = this.getIdsFor(host);
+      if (ids.length === 0) {
+        styles.hide(this.element);
+        this.lastHostElement = null;
+        return;
+      }
+
+      this.lastHostElement = host;
+      this.showFor(host, ids);
     });
+
+    document.addEventListener('pointerout', (event) => {
+      const target = event.target as HTMLElement | null;
+      const toEl = (event as PointerEvent).relatedTarget as HTMLElement | null;
+      if (!target) return;
+
+      const leavingHost = target.closest<HTMLElement>(
+        `[${this.appliedAttribute}]`,
+      );
+      if (!leavingHost) return;
+
+      if (toEl && leavingHost.contains(toEl)) return;
+
+      if (toEl && this.element.contains(toEl)) return;
+
+      styles.hide(this.element);
+      this.lastHostElement = null;
+    });
+
+    window.addEventListener('scroll', () => styles.hide(this.element), {
+      passive: true,
+    });
+    window.addEventListener('resize', () => styles.hide(this.element));
   }
 
-  private showFor(target: HTMLElement) {
-    const {left, top, height} = target.getBoundingClientRect();
-    const keys: string[] = Array.from(
-      this.state.nodes.get(target).keys.values(),
-    );
+  private getIdsFor(el: HTMLElement): string[] {
+    const raw = el.getAttribute(this.appliedAttribute);
+    if (!raw) return [];
+    return raw
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+
+  private showFor(hostElement: HTMLElement, ids: string[]) {
+    const {left, top, height} = hostElement.getBoundingClientRect();
+
     styles.set(
       this.element,
-      `top: ${top + height - CENTER_OFFSET}px; left: ${
-        left - CENTER_OFFSET
-      }px; ${styles.pin}`,
+      `top:${top + height - CENTER_OFFSET}px;left:${left - CENTER_OFFSET}px;${styles.pin}`,
     );
 
-    const ids = keys
-      .map((key: string) => this.state.projectTranslations[key].id)
-      .filter(Boolean)
-      .join(',');
-
-    this.element.innerHTML = this.pinContent(
-      `data-id${keys.length > 1 ? 's' : ''}="${ids}"`,
-    );
+    const idsAttr = ids.join(',');
+    this.element.innerHTML = this.pinContent(`${PIN_ATTRIBUTE}="${idsAttr}"`);
+    this.element.style.display = '';
   }
 
   private pinContent(id: string) {

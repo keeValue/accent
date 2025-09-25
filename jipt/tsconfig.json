@@ -1,8 +1,13 @@
 {
   "compilerOptions": {
-    "allowJs": false,
-    "lib": ["dom", "es2015"],
-    "noEmit": true,
-    "downlevelIteration": true
-  }
+    "target": "esnext",
+    "module": "esnext",
+    "outDir": "./dist",
+    "strict": true,
+    "sourceMap": true
+  },
+  "include": [
+    "index.ts",
+    "src/**/*"
+  ]
 }

@@ -1,73 +1,74 @@
-interface RefState {
-  elements: Map<HTMLElement, object>;
-}
+import {DefaultApplierConfig} from './config/default-applier-config';
+import {DefaultConfig} from './config/default-config';
+import {DefaultLiveNodeConfig} from './config/default-live-node-config';
+import {DefaultResolverConfig} from './config/default-resolver-config';
+import {DefaultScannerConfig} from './config/default-scanner-config';
+import {Config} from './interfaces/config';
+import {TranslationRecord} from './interfaces/translation-record';
 
-interface NodeState {
-  keys: Set<string>;
-  meta: object;
-}
+export class State {
+  private static _instance: State;
+  private _translations: Map<string, TranslationRecord> = new Map();
+  private _currentRevision: string = '';
+  private _config: Config = DefaultConfig;
 
-interface Translation {
-  id: string;
-  key: string;
-  text: string;
-}
+  private constructor() {}
 
-interface Args {
-  refs: Map<string, RefState>;
-  nodes: WeakMap<HTMLElement, NodeState>;
-  projectTranslations: Map<string, Translation>;
-}
-
-/*
-  The State is a singleton component that keeps track of references
-  used in all components. With the state, you can request a NodeElement from a translation, vice and versa.
-*/
-export default class State {
-  refs: Map<string, RefState>;
-  nodes: WeakMap<HTMLElement, NodeState>;
-  projectTranslations: Map<string, Translation>;
-
-  constructor(properties: Args) {
-    this.refs = properties.refs;
-    this.nodes = properties.nodes;
-    this.projectTranslations = properties.projectTranslations;
+  static getInstance(): State {
+    if (!this._instance) this._instance = new this();
+    return this._instance;
   }
 
-  getCurrentRevision() {
-    return localStorage.getItem('accent-current-revision');
+  init(config: Config): State {
+    this._config = config;
+    this._config.scannerConfig =
+      this._config.scannerConfig ?? DefaultScannerConfig;
+    this._config.resolverConfig =
+      this._config.resolverConfig ?? DefaultResolverConfig;
+    this._config.applierConfig =
+      this._config.applierConfig ?? DefaultApplierConfig;
+    this._config.liveNodeConfig =
+      this._config.liveNodeConfig ?? DefaultLiveNodeConfig;
+    return this;
   }
 
-  setCurrentRevision(id: string) {
-    localStorage.setItem('accent-current-revision', id);
+  get translations() {
+    return this._translations;
   }
 
-  addReference(node: HTMLElement, translation: Translation, meta = {}) {
-    this.addTranslationRef(translation, node, meta);
-    this.addNodeRef(node, translation);
+  get currentRevision() {
+    return this._currentRevision;
   }
 
-  translationById(id: string) {
-    return this.projectTranslations[id];
+  set currentRevision(value: string) {
+    this._currentRevision = value;
   }
 
-  private addTranslationRef(
-    translation: Translation,
-    node: HTMLElement,
-    meta = {}
-  ) {
-    const match = this.refs.get(translation.id);
-    const elements = match ? match.elements : new Map();
-    elements.set(node, meta);
-
-    this.refs.set(translation.id, {elements});
+  get config() {
+    return this._config;
   }
 
-  private addNodeRef(node: HTMLElement, translation: Translation, meta = {}) {
-    const match = this.nodes.get(node);
-    const keys: Set<string> = match ? match.keys : new Set();
-    keys.add(translation.key);
+  setTranslations(revision: string, dict: Record<string, TranslationRecord>) {
+    this._currentRevision = revision;
 
-    this.nodes.set(node, {keys, meta});
+    this._translations.clear();
+    for (const [key, rec] of Object.entries(dict)) {
+      this._translations.set(key, rec);
+    }
+  }
+
+  updateTranslation(record: TranslationRecord) {
+    this._translations.set(record.key, record);
+  }
+
+  getTranslationById(id: string): TranslationRecord | null {
+    for (const record of this._translations) {
+      if (record[1].id === id) return record[1];
+    }
+    return null;
+  }
+
+  getTranslationByKey(key: string): TranslationRecord | null {
+    return this._translations.get(key) ?? null;
   }
 }

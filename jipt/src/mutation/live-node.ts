@@ -1,102 +1,164 @@
-import State from '../state';
-import randomClass from '../ui/random-class';
-import styles from '../ui/styles';
-import Mutation from './mutation';
+import {TranslationRecord} from '../interfaces/translation-record';
+import {State} from '../state';
+import {Applier} from './applier';
+import {Resolver} from './resolver';
+import {Scanner} from './scanner';
 
-const ACCENT_REGEX = /{\^(.+)}/;
-const ACCENT_CLASS = randomClass();
+export class LiveNode {
+  private scanner: Scanner;
+  private resolver: Resolver;
+  private applier: Applier;
+  private _state: State = State.getInstance();
+  private readonly _config = this._state.config.liveNodeConfig;
 
-/*
-  The LiveNode component takes care of NodeElement modified by Accent client.
+  private mo?: MutationObserver;
+  private pendingRoots = new Set<HTMLElement>();
+  private scheduled = false;
+  private debounceHandle: number | undefined;
+  private lastEvaluatedAt = 0;
 
-  It replace the original parent window node values with Accent translations and
-  it modifies the state to keep track of added nodes and translations.
-*/
-export default class LiveNode {
-  private readonly state: State;
-
-  constructor(state: State) {
-    this.state = state;
+  constructor() {
+    this.scanner = new Scanner();
+    this.resolver = new Resolver();
+    this.applier = new Applier();
   }
 
-  isLive(node: HTMLElement) {
-    return !!this.state.nodes.get(node);
+  static isLive(node: HTMLElement): boolean {
+    const {processedClass} = State.getInstance().config.applierConfig;
+    return node.classList.contains('.' + processedClass) !== null;
   }
 
-  matchAttributes(node: HTMLElement) {
-    Array.from(node.attributes).forEach((attribute) => {
-      const translation = this.findTranslationByValue(attribute.value);
-      if (!translation || !translation.text) return;
-
-      styles.set(node, styles.translationNode);
-
-      const newAttribute = this.replaceValue(attribute.value, translation.text);
-      attribute.value = newAttribute;
-
-      this.state.addReference(node, translation, {
-        attributeName: attribute.name,
-      });
-    });
-  }
-
-  matchNode(node: Element) {
-    const translation = this.findTranslationByValue(node.nodeValue);
-
-    if (!translation || !translation.text) return;
-  }
-
-  matchText(node: Element | ChildNode) {
-    const translation = this.findTranslationByValue(node.nodeValue);
-
-    if (!translation || translation.text === undefined) return;
-    if (translation.text === '') translation.text = '–';
-
-    const parentNode = node.parentNode as Element;
-
-    const span = document.createElement('span');
-    span.innerHTML = translation.text;
-    span.setAttribute('class', ACCENT_CLASS);
-
-    const newContent = this.replaceValue(node.nodeValue, span.outerHTML);
-    if (newContent === node.nodeValue) return;
-
-    parentNode.innerHTML = this.replaceValue(parentNode.innerHTML, newContent);
-    const newNode = parentNode.getElementsByClassName(
-      ACCENT_CLASS,
-    )[0] as HTMLElement;
-    Mutation.nodeStyleRefresh(newNode, translation);
-
-    this.state.addReference(newNode, translation);
-  }
-
-  evaluate(node: HTMLElement) {
-    node.childNodes &&
-      node.childNodes.forEach((node: HTMLElement) => {
-        this.evaluate(node);
-        if (node.attributes) this.matchAttributes(node);
-      });
-
-    if (node.nodeType === Node.TEXT_NODE) {
-      this.matchText(node);
+  private disconnect() {
+    if (this.mo) {
+      this.mo?.disconnect();
+      this.mo = undefined;
     }
+
+    if (this.debounceHandle !== undefined) {
+      clearTimeout(this.debounceHandle);
+      this.debounceHandle = undefined;
+    }
+
+    this.pendingRoots.clear();
+    this.scheduled = false;
   }
 
-  private replaceValue(value: string, newContent: string) {
-    return value.replace(ACCENT_REGEX, newContent);
+  reset() {
+    this.disconnect();
+    this.applier.unapplyAll();
   }
 
-  private valueMatch(value: string) {
-    return value.match(ACCENT_REGEX);
+  evaluate(root: Element) {
+    const candidates = this.scanner.scan(root);
+    for (const candidate of candidates) {
+      const records = this.resolver.resolve(candidate.keys);
+      if (records.length === 0) continue;
+      this.applier.apply(candidate.node, records, candidate.meta);
+    }
+    document.dispatchEvent(new Event('apply-pins'));
   }
 
-  private findTranslationByValue(value: string) {
-    if (!value) return;
+  private flush() {
+    if (this.pendingRoots.size === 0) return;
 
-    const match = this.valueMatch(value);
-    if (!match) return;
+    const roots = Array.from(this.pendingRoots);
+    this.pendingRoots.clear();
 
-    const id = match[1];
+    for (const root of roots) {
+      const candidates = this.scanner.scanSubtree(root);
+      for (const candidate of candidates) {
+        const records = this.resolver.resolve(candidate.keys);
+        if (records.length === 0) continue;
+        this.applier.apply(candidate.node, records, candidate.meta);
+      }
+    }
 
-    return this.state.translationById(id);
+    this.lastEvaluatedAt = performance.now();
+  }
+
+  private scheduleFlush() {
+    if (this.scheduled) return;
+    const {debounceMs} = this._config;
+    this.scheduled = true;
+
+    this.debounceHandle = setTimeout(() => {
+      this.scheduled = false;
+      this.flush();
+    }, debounceMs);
+  }
+
+  private collectRoot(node: Node) {
+    const {ignoreSelectors} = this._state.config.scannerConfig;
+    const element = node instanceof HTMLElement ? node : node.parentElement;
+    if (!element) return;
+
+    if (ignoreSelectors?.some((selector) => element.matches(selector))) return;
+
+    for (const existing of Array.from(this.pendingRoots)) {
+      if (existing.contains(element)) return;
+      if (element.contains(existing)) this.pendingRoots.delete(existing);
+    }
+    this.pendingRoots.add(element);
+  }
+
+  private onMutations(records: MutationRecord[]) {
+    const {
+      processedClass,
+      conflictedClass: conflictClass,
+      idAttribute,
+    } = this._state.config.applierConfig;
+
+    for (const record of records) {
+      if (
+        record.type === 'attributes' &&
+        record.target instanceof HTMLElement
+      ) {
+        if (record.attributeName === idAttribute) continue;
+
+        const target = record.target as HTMLElement;
+        if (
+          record.attributeName === 'class' &&
+          (target.classList.contains(processedClass) ||
+            target.classList.contains(conflictClass ?? ''))
+        )
+          continue;
+      }
+      switch (record.type) {
+        case 'childList':
+          record.addedNodes.forEach((node) => this.collectRoot(node));
+          if (record.target instanceof HTMLElement)
+            this.collectRoot(record.target);
+          break;
+        case 'attributes':
+        case 'characterData':
+          if (record.target instanceof HTMLElement)
+            this.collectRoot(record.target);
+          break;
+      }
+    }
+
+    this.scheduleFlush();
+  }
+
+  applyRecordToAllNodes(record: TranslationRecord): void {
+    const nodes = this.applier.nodesFor(record.id);
+    if (!nodes) return;
+    for (const node of nodes) this.applier.apply(node, [record]);
+  }
+
+  observe(root: Element) {
+    const {observeAttributes, observeChildList, observeCharacterData} =
+      this._config;
+    if (this.mo) this.disconnect();
+
+    this.mo = new MutationObserver((records) => this.onMutations(records));
+    this.mo.observe(root, {
+      subtree: true,
+      childList: observeChildList,
+      attributes: observeAttributes,
+      attributeOldValue: false,
+      characterData: observeCharacterData,
+      characterDataOldValue: false,
+    });
   }
 }
