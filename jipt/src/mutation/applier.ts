@@ -106,13 +106,14 @@ export class Applier {
       processedClass,
       conflictedClass: conflictClass,
     } = this._config;
-    const original = this.originals.get(node);
+    const parent = node.parentElement;
+    if (!parent) return;
+
+    const original = this.originals.get(parent);
     if (original) {
       node.textContent = original.text ?? '';
       this.originals.delete(node);
     }
-
-    const parent = node.parentElement!;
 
     const rawIds = parent.getAttribute(idAttribute);
     parent.removeAttribute(idAttribute);
@@ -136,9 +137,7 @@ export class Applier {
 
   unapplyAll() {
     for (const node of this._nodeIndex.keys()) {
-      const parent = node.parentElement;
-      if (!parent) continue;
-      this.unapply(parent);
+      this.unapply(node);
     }
   }
 }
